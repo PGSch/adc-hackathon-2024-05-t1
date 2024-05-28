@@ -1,0 +1,77 @@
+name: GPT Processing
+
+on:
+  workflow_dispatch:
+    inputs:
+      user_input:
+        description: 'User input for GPT processing'
+        required: true
+        type: string
+
+jobs:
+  process-with-gpt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install my-gpt package
+        run: |
+          python -m pip install --upgrade pip
+          pip install path/to/my_gpt_package.whl
+
+      - name: Extract repository content
+        id: repo-content
+        run: |
+          # Find all text files and concatenate their content into a single string
+          # This example uses 'grep' to filter out binary files
+          repository_files=$(find . -type f -not -path '*/\.*')
+          repository_context=""
+          for file in $repository_files; do
+            if grep -qI '.*' "$file"; then  # If the file is a text file, add its content
+              repository_context+=$(echo "
+                --- $file ---
+                $(cat "$file")")
+                            else
+                              repository_context+=$(echo "
+                --- $file ---
+                <BINARY_FILE>")
+                            fi
+                          done
+          
+          # Use GitHub Actions' output functionality to set the repository context
+          # Note: Output variables can only be single-line strings, so we base64 encode it
+          repository_context=$(echo -n "$repository_context" | base64)
+          echo "::set-output name=repository_context::$repository_context"
+
+
+      - name: Process with my-gpt package
+        run: |
+          user_input="${{ github.event.inputs.user_input }}"
+          repository_context="${{ steps.repo-content.outputs.repository_context }}"
+          # Replace with the command you use to run your package, passing in the user input and repository context
+          my-gpt-command --user-input "$user_input" --repository-context "$repository_context"
+
+      - name: Create a new branch
+        run: |
+          ORIGINAL_BRANCH_NAME=$(echo ${{ github.ref }} | sed 's/refs/heads\///')
+          NEW_BRANCH_NAME="${ORIGINAL_BRANCH_NAME}-gptOutput"
+          git checkout -b $NEW_BRANCH_NAME
+
+      - name: Commit files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Add GPT processed files"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.NEW_BRANCH_NAME }}
