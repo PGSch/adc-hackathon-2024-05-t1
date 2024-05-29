@@ -18,6 +18,8 @@ def main():
     print(f"user_input: {user_input}")
     print(f"underlying_repo: {underlying_repo}")
 
+    return user_input
+
 
 if __name__ == "__main__":
     main()
