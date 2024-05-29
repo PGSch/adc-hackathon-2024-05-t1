@@ -18,10 +18,6 @@ def main():
     print(f"user_input: {user_input}")
     # print(f"underlying_repo: {underlying_repo}")
 
-    output = unittest_flow(user_input, underlying_repo)
-
-    print(output)
-
 
 if __name__ == "__main__":
     main()
