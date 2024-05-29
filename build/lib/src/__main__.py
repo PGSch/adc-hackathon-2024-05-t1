@@ -14,9 +14,11 @@ def main():
     user_input = args.user_input
     underlying_repo = args.underlying_repo
 
-    # Your logic here
-    print(f"user_input: {user_input}")
-    print(f"underlying_repo: {underlying_repo}")
+    # # Your logic here
+    # print(f"user_input: {user_input}")
+    # print(f"underlying_repo: {underlying_repo}")
+
+    return user_input
 
 
 if __name__ == "__main__":
