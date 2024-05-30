@@ -12,9 +12,8 @@ src/__init__.py
 src/__main__.py
 src/config.py
 src/config.yaml
+src/corrected_function.py
 src/pig_latin.py
 src/unittest_flow.py
+src/unittest_flow2.py
 src/unittest_python.py
-tests/unit/__init__.py
-tests/unit/test_functions.py
-tests/unit/test_pig_latin.py
