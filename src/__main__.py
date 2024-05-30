@@ -1,5 +1,14 @@
 # src/__main__.py
 
+import sys
+from src.unittest_flow import unittest_flow  # Import your main module or function
+
+import os
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key is None:
+    raise ValueError("The OpenAI API key must be set in the environment.")
+
 
 def main():
     import argparse
