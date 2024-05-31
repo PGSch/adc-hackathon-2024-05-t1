@@ -141,6 +141,7 @@ def main():
             test_output,
             failed_test_cases,
             explain_model=explain_model,
+            temperature=0.4 + 0.1 * failed_cases_changed,
         )
         logging.debug(f"Corrected function:\n{corrected_function}")
 
