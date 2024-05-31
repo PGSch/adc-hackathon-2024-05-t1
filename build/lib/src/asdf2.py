@@ -3,9 +3,10 @@
 import sys
 import logging
 import os
+import argparse
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 from src.unittest_flow import (
     unittest_flow,
@@ -15,6 +16,15 @@ from src.unittest_flow import (
 )  # Import your main module or function
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
+overall_model = "gpt-4o"
+if overall_model:
+    explain_model = overall_model
+    plan_model = overall_model
+    execute_model = overall_model
+else:
+    explain_model = "gpt-3.5-turbo"
+    plan_model = "gpt-3.5-turbo"
+    execute_model = "gpt-3.5-turbo"
 if openai_api_key is None:
     raise ValueError("The OpenAI API key must be set in the environment.")
 
@@ -48,8 +58,6 @@ def print_test_file():
 
 
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser(description="Description of your script")
     parser.add_argument("--user_input", type=str, required=True, help="User input")
     parser.add_argument(
@@ -65,48 +73,58 @@ def main():
 
     function_to_test, function_filename = read_pig_latin()
     logging.info("Starting test generation and correction loop...")
-
-    # Generate the tests
+    previous_failed_cases = None
+    tests_changed = True
+    # Generate the tests with 100% code coverage
     test_file = unittest_flow(
         function_to_test,
         function_filename,
         approx_min_cases_to_cover=10,
-        print_text=True,
+        reruns_if_fail=5,
+        print_text=False,
+        explain_model=explain_model,
+        plan_model=plan_model,
+        execute_model=execute_model,
     )
 
-    # Run the tests
-    test_result, test_output = run_pytest(test_file)
-    failed_test_cases = extract_failed_test_cases(test_output)
+    for _ in range(0, 3):
+        # Run the tests
+        test_result, test_output = run_pytest(test_file)
+        failed_test_cases = extract_failed_test_cases(test_output)
 
-    if test_result != 0:
+        if test_result == 0:
+            logging.info("All tests passed successfully.")
+            break
+
+        if previous_failed_cases == failed_test_cases:
+            logging.warning(
+                "No change in failed test cases after correction. Reviewing test feasibility..."
+            )
+            # Additional logic to handle unchanged tests or regenerate tests
+            tests_changed = False
+            break  # or continue with a modified approach
         # Correct the function based on the test results
-        corrected_function, corrected_function_file = correct_function(
+        corrected_function, _ = correct_function(
             function_to_test,
             function_filename,
             test_output,
             failed_test_cases,
+            explain_model=explain_model,
         )
         logging.debug(f"Corrected function:\n{corrected_function}")
 
-        # Run the tests again to verify they now pass
+        # Generate the tests again for the corrected function
         test_file = unittest_flow(
             corrected_function,
             function_filename,  # Ensure the filename is passed
             approx_min_cases_to_cover=10,
-            print_text=True,
-            explain_model="gpt-4o",
-            plan_model="gpt-4o",
-            execute_model="gpt-4o",
+            print_text=False,
+            explain_model=explain_model,
+            plan_model=plan_model,
+            execute_model=execute_model,
         )
-        test_result, test_output = run_pytest(test_file)
 
-        if test_result == 0:
-            logging.info("All tests passed successfully after correction.")
-        else:
-            logging.warning("Some tests still failed after correction.")
-            logging.warning(f"Failed test output:\n{test_output}")
-    else:
-        logging.info("All tests passed successfully on the first run.")
+        function_to_test = corrected_function  # Update the function to test with the corrected function
 
     logging.info("Test generation and correction loop completed.")
 
