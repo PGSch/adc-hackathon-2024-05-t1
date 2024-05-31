@@ -84,7 +84,7 @@ def main():
     function_to_test, function_filename = read_function("inventory_manager.py")
     logging.info("Starting test generation and correction loop...")
     previous_failed_cases = None
-    failed_cases_changed = True
+    failed_cases_changed = 0
     # Generate the tests with 100% code coverage
     test_file = unittest_flow(
         function_to_test,
@@ -114,11 +114,9 @@ def main():
                 "No change in failed test cases after correction. Reviewing test feasibility..."
             )
             # Additional logic to handle unchanged tests or regenerate tests
-            failed_cases_changed = False
-            # break  # or continue with a modified approach
-            # Generate the tests again for the corrected function
+            failed_cases_changed += 1
 
-        if not failed_cases_changed:
+        if failed_cases_changed > 5:
             logging.info("Regenerating or analyzing tests due to repeated failures.")
             # Generate the tests again and hope for new better tests
             test_file = unittest_flow(
@@ -129,11 +127,13 @@ def main():
                 explain_model=explain_model,
                 plan_model=plan_model,
                 execute_model=execute_model,
-                temperature=0.6,
+                temperature=0.4 + 0.1 * failed_cases_changed,
             )
             idx = ref_idx
+            failed_cases_changed = 0
             continue
 
+        logging.info("Different failed cases after correction - try to correct again.")
         # Correct the function based on the test results
         corrected_function, _ = correct_function(
             function_to_test,
@@ -144,24 +144,8 @@ def main():
         )
         logging.debug(f"Corrected function:\n{corrected_function}")
 
-        # # Generate the tests again for the corrected function
-        # test_file = unittest_flow(
-        #     corrected_function,
-        #     function_filename,  # Ensure the filename is passed
-        #     approx_min_cases_to_cover=10,
-        #     print_text=False,
-        #     explain_model=explain_model,
-        #     plan_model=plan_model,
-        #     execute_model=execute_model,
-        # )
-
         function_to_test = corrected_function  # Update the function to test with the corrected function
         previous_failed_cases = failed_test_cases  # Update the record of failed cases
-
-    if not failed_cases_changed:
-        # Logic to regenerate tests or further analyze them
-        logging.info("Regenerating or analyzing tests due to repeated failures.")
-        # You might want to call `unittest_flow` with different parameters or review the test cases manually
 
     logging.info("Test generation and correction loop completed.")
 

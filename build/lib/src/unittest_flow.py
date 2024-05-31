@@ -99,6 +99,7 @@ def unittest_flow(
 - Take advantage of the features of `{unit_test_package}` to make the tests easy to write and maintain
 - Be easy to read and understand, with clean code and descriptive names
 - Be deterministic, so that the tests always pass or fail in the same way
+- Import all required packages used in the tests
 
 To help unit test the function above, list diverse scenarios that the function should be able to handle (and under each scenario, include a few examples as sub-bullets).""",
     }
@@ -168,27 +169,39 @@ To help unit test the function above, list diverse scenarios that the function s
     package_comment = ""
     if unit_test_package == "pytest":
         package_comment = "# below, each test case is represented by a tuple passed to the @pytest.mark.parametrize decorator"
+
     execute_system_message = {
         "role": "system",
-        "content": "You are a world-class Python developer with an eagle eye for unintended bugs and edge cases. You write careful, accurate unit tests. When asked to reply only with code, you write all of your code in a single block.",
+        "content": (
+            "As a world-class Python developer, you possess a keen ability to spot unintended bugs "
+            "and edge cases. You are tasked with writing careful, meticulous unit tests. "
+            "Please ensure all your responses are in code only and formatted as a single, coherent block "
+            "to maintain consistency and readability. This approach is crucial for streamlining "
+            "the review process and ensuring accuracy in your submissions."
+        ),
     }
+
+    # Prepare dynamic parts of the user message
+    imports_and_function = f"""# imports
+    import {unit_test_package}  # used for our unit tests
+
+    # function to test
+    from src.{function_filename.split('/')[-1].replace('.py', '')} import {function_to_test.split('(')[0].strip()}
+    """
+
+    # Assemble the user message
     execute_user_message = {
         "role": "user",
         "content": f"""Using Python and the `{unit_test_package}` package, write a suite of unit tests for the function, following the cases above. Include helpful comments to explain each line. Reply only with code, formatted as follows:
 
-                    ```python
-                    # imports
-                    import {unit_test_package}  # used for our unit tests
-                    {{insert other imports as needed}}
+    ```python
+    {imports_and_function}
+    # unit tests
+    {package_comment}
+    {{insert unit test code here}}
 
-                    # function to test
-                    from src.{function_filename.split('/')[-1].replace('.py', '')} import {function_to_test.split('(')[0].strip()}
-
-                    # unit tests
-                    {package_comment}
-                    {{insert unit test code here}}
                     ```
-                    The imports and functions to test part has to be exactly like that!
+                    The imports and functions to test part has to be exactly like that! However, make sure to import all dependencies that you might add in the cases!
                     """,
     }
     execute_messages = [
@@ -225,6 +238,11 @@ To help unit test the function above, list diverse scenarios that the function s
             print_message_assistant(execution)
 
     code = execution.split("```python")[1].split("```")[0].strip()
+
+    # Check and insert missing imports if necessary
+    if "sys" in code and "import sys" not in code:
+        code = "import sys\n" + code
+
     try:
         ast.parse(code)
     except SyntaxError as e:

@@ -14,42 +14,31 @@ class InventoryManager:
         quantity (int): The number of items to add.
 
         Raises:
-        ValueError: If the quantity is negative.
+        ValueError: If the quantity is negative or item is not a string or item name is empty.
+        TypeError: If the quantity is not an integer.
         """
+        if not isinstance(quantity, int):
+            raise TypeError("Quantity must be an integer")
+
         if quantity < 0:
             raise ValueError("Quantity must be non-negative")
-        if item in self.inventory:
-            self.inventory[item] += quantity
-        else:
-            self.inventory[item] = quantity
 
-    def remove_item(self, item, quantity):
-        """
-        Removes a specified quantity of an item from the inventory.
+        if not isinstance(item, str) or item == "":
+            raise ValueError("Item must be a non-empty string")
 
-        Args:
-        item (str): The name of the item to remove.
-        quantity (int): The number of items to remove.
+        if not item.isascii():
+            raise ValueError("Item name must contain only ASCII characters")
 
-        Raises:
-        ValueError: If the quantity is negative or more than the available quantity.
-        """
-        if quantity < 0:
-            raise ValueError("Quantity must be non-negative")
-        if item not in self.inventory or self.inventory[item] < quantity:
-            raise ValueError("Not enough inventory")
-        self.inventory[item] -= quantity
-        if self.inventory[item] == 0:
-            del self.inventory[item]
+        if len(item) > 1000:
+            raise ValueError("Item name is too long")
 
-    def check_inventory(self, item):
-        """
-        Returns the quantity of the item in the inventory.
+        if any(not c.isalnum() and c not in [' ', '-'] for c in item):
+            raise ValueError("Item name can only contain alphanumeric characters, spaces, or hyphens")
 
-        Args:
-        item (str): The name of the item to check.
-
-        Returns:
-        int: The quantity of the item in the inventory.
-        """
-        return self.inventory.get(item, 0)
+        try:
+            if item in self.inventory:
+                self.inventory[item] += quantity
+            else:
+                self.inventory[item] = quantity
+        except Exception as e:
+            raise ValueError("System interruption occurred while adding the item")
