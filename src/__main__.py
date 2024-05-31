@@ -1,22 +1,24 @@
 # src/__main__.py
 
+from src.unittest_flow import (
+    unittest_flow,
+    run_pytest,
+    correct_function,
+    extract_failed_test_cases,
+)
+
 import sys
 import logging
 import os
 import argparse
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
-from src.unittest_flow import (
-    unittest_flow,
-    run_pytest,
-    correct_function,
-    extract_failed_test_cases,
-)  # Import your main module or function
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
-overall_model = "gpt-4o"
+# overall_model = "gpt-4o"
+overall_model = False
 if overall_model:
     explain_model = overall_model
     plan_model = overall_model
@@ -29,18 +31,26 @@ if openai_api_key is None:
     raise ValueError("The OpenAI API key must be set in the environment.")
 
 
-def read_pig_latin():
+def read_function(function_file: str):
+    """
+
+    Args:
+        function_file (str): e.g. 'pig_latin.py'
+
+    Returns:
+        _type_: _description_
+    """
     # Get the directory of the current file (unittest_flow.py)
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Construct the absolute path to the pig_latin.py
-    pig_latin_path = os.path.join(current_file_dir, ".", "pig_latin.py")
+    function_path = os.path.join(current_file_dir, ".", function_file)
 
     # Read the contents of pig_latin.py
-    with open(pig_latin_path, "r") as file:
+    with open(function_path, "r") as file:
         function_to_test = file.read()
 
-    return function_to_test, pig_latin_path
+    return function_to_test, function_path
 
 
 def print_test_file():
@@ -71,9 +81,10 @@ def main():
     print(f"user_input: {user_input}")
     print(f"underlying_repo: {underlying_repo}")
 
-    function_to_test, function_filename = read_pig_latin()
+    function_to_test, function_filename = read_function("inventory_manager.py")
     logging.info("Starting test generation and correction loop...")
-
+    previous_failed_cases = None
+    failed_cases_changed = 0
     # Generate the tests with 100% code coverage
     test_file = unittest_flow(
         function_to_test,
@@ -86,7 +97,10 @@ def main():
         execute_model=execute_model,
     )
 
-    for _ in range(0, 5):
+    # for _ in range(0, 3):
+    idx = 3
+    ref_idx = idx
+    while idx > 0:
         # Run the tests
         test_result, test_output = run_pytest(test_file)
         failed_test_cases = extract_failed_test_cases(test_output)
@@ -95,28 +109,43 @@ def main():
             logging.info("All tests passed successfully.")
             break
 
+        if previous_failed_cases == failed_test_cases:
+            logging.warning(
+                "No change in failed test cases after correction. Reviewing test feasibility..."
+            )
+            # Additional logic to handle unchanged tests or regenerate tests
+            failed_cases_changed += 1
+
+        if failed_cases_changed > 5:
+            logging.info("Regenerating or analyzing tests due to repeated failures.")
+            # Generate the tests again and hope for new better tests
+            test_file = unittest_flow(
+                corrected_function,
+                function_filename,  # Ensure the filename is passed
+                approx_min_cases_to_cover=10,
+                print_text=False,
+                explain_model=explain_model,
+                plan_model=plan_model,
+                execute_model=execute_model,
+                temperature=0.4 + 0.1 * failed_cases_changed,
+            )
+            idx = ref_idx
+            failed_cases_changed = 0
+            continue
+
+        logging.info("Different failed cases after correction - try to correct again.")
         # Correct the function based on the test results
-        corrected_function = correct_function(
+        corrected_function, _ = correct_function(
             function_to_test,
             function_filename,
             test_output,
             failed_test_cases,
             explain_model=explain_model,
         )
-        # logging.debug(f"Corrected function:\n{corrected_function}")
-
-        # # Generate the tests again for the corrected function
-        # test_file = unittest_flow(
-        #     corrected_function,
-        #     function_filename,  # Ensure the filename is passed
-        #     approx_min_cases_to_cover=10,
-        #     print_text=False,
-        #     explain_model=explain_model,
-        #     plan_model=plan_model,
-        #     execute_model=execute_model,
-        # )
+        logging.debug(f"Corrected function:\n{corrected_function}")
 
         function_to_test = corrected_function  # Update the function to test with the corrected function
+        previous_failed_cases = failed_test_cases  # Update the record of failed cases
 
     logging.info("Test generation and correction loop completed.")
 

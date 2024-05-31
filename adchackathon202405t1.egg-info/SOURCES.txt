@@ -14,6 +14,8 @@ src/asdf1.py
 src/asdf2.py
 src/config.py
 src/config.yaml
+src/inventory_manager.py
+src/inventory_manager_original.py
 src/pig_latin.py
 src/unittest_flow.py
 src/unittest_python.py

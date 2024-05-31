@@ -7,6 +7,6 @@ rm -rf build dist *.egg-info
 python3 setup.py bdist_wheel
 
 # Force reinstall the package
-pip install --force-reinstall dist/adchackathon202405t1-0.0.6-py3-none-any.whl
+pip install --force-reinstall dist/adchackathon202405t1-0.0.7-py3-none-any.whl
 
 pytest tests/unit/test_functions.py

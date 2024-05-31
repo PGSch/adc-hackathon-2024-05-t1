@@ -2,74 +2,53 @@
 import pytest  # used for our unit tests
 
 # function to test
-from src.pig_latin import pig_latin
+from src.inventory_manager import InventoryManager
 
+# unit tests
+@pytest.fixture
+def manager():
+    return InventoryManager()
 
-@pytest.mark.parametrize(
-    "input_text, expected_output",
-    [
-        # Basic Words
-        ("apple", "appleway"),
-        ("orange", "orangeway"),
-        ("banana", "ananabay"),
-        ("grape", "apegray"),
-        # Words with Punctuation
-        ("hello!", "ellohay!"),
-        ("world?", "orldway?"),
-        ("can't", "antca'y"),  # Adjusted as per function behavior
-        ("it's", "it'sway"),  # Adjusted as per function behavior
-        # Capitalization
-        ("HELLO", "ELLOHAY"),
-        ("WORLD", "ORLDWAY"),
-        ("Hello", "Ellohay"),
-        ("World", "Orldway"),
-        # Hyphenated Words
-        ("mother-in-law", "othermay-inway-lawway"),
-        ("check-in", "eckchay-inway"),
-        ("mother-in-law!", "othermay-inway-lawway!"),
-        ("check-in?", "eckchay-inway?"),
-        # Sentences
-        ("Hello, world!", "Ellohay, orldway!"),
-        ("This is a test.", "Isthay isway away esttay."),
-        (
-            "Hello, World! This is a Test.",
-            "Ellohay, Orldway! Isthay isway away Esttay.",
-        ),
-        ("Can't wait to see you!", "Antca'y aitway otay eesay ouyay!"),
-        # Edge Cases
-        ("", ""),
-        ("a", "away"),
-        ("I", "Iway"),
-        ("b", "bay"),
-        ("rhythm", "rhythmay"),
-        ("myth", "ythmay"),  # Adjusted to correct translation
-        ("123abc", "123abcway"),
-        ("abc123", "abc123way"),
-        # Special Characters
-        ("hello@world", "ellohay@orldway"),
-        ("good#morning", "oodgay#orningmay"),
-        # Multiple punctuation marks
-        ("hello...world", "ellohay...orldway"),
-        ("good!morning", "oodgay!orningmay"),
-        # Multiple contractions
-        ("can't-it's", "antca'y-it'sway"),
-        # Multiple hyphens
-        ("mother-in-law-stepmother", "othermay-inway-lawway-epmotherstay"),
-        # Hyphenated contraction
-        ("can't-do", "antca'y-oday"),
-        # Words starting with consonant clusters
-        ("school", "oolschay"),
-        ("string", "ingstray"),
-        # Single letter consonant
-        ("b", "bay"),
-        ("z", "zay"),
-        # Upper and lower case mix
-        ("HelLo", "Ellohay"),
-        ("wORld", "Orldway"),
-        # Digits and letters mixed
-        ("123abc", "123abcway"),
-        ("abc123", "abc123way"),
-    ],
-)
-def test_pig_latin(input_text, expected_output):
-    assert pig_latin(input_text) == expected_output
+def test_valid_input(manager):
+    manager.add_item("Apple", 10)
+    assert manager.inventory == {"Apple": 10}
+
+def test_quantity_validation_negative(manager):
+    with pytest.raises(ValueError):
+        manager.add_item("Banana", -5)
+
+def test_quantity_validation_non_integer(manager):
+    with pytest.raises(TypeError):
+        manager.add_item("Orange", "10")
+
+def test_item_name_validation_empty_string(manager):
+    with pytest.raises(ValueError):
+        manager.add_item("", 5)
+
+def test_item_name_validation_too_long(manager):
+    with pytest.raises(ValueError):
+        manager.add_item("VeryLongItemName" * 100, 5)
+
+def test_item_name_validation_special_characters(manager):
+    with pytest.raises(ValueError):
+        manager.add_item("@#$", 5)
+
+def test_item_name_validation_non_ascii(manager):
+    with pytest.raises(ValueError):
+        manager.add_item("Résumé", 5)
+
+def test_existing_item_add_quantity(manager):
+    manager.add_item("Apple", 5)
+    manager.add_item("Apple", 3)
+    assert manager.inventory == {"Apple": 8}
+
+def test_existing_item_add_zero_quantity(manager):
+    manager.add_item("Apple", 5)
+    manager.add_item("Apple", 0)
+    assert manager.inventory == {"Apple": 5}
+
+def test_existing_item_add_negative_quantity(manager):
+    with pytest.raises(ValueError):
+        manager.add_item("Apple", -3)
+
+# Add the edge case tests as well following a similar pattern

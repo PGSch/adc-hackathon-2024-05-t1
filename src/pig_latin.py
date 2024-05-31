@@ -1,63 +1,49 @@
-import re
+# Implementing the final correction to the pig_latin function based on the detailed description provided above.
 
 
 def pig_latin(text):
-    def convert_word(word):
-        # Handle words with internal digits or special characters
-        if re.search(r"[0-9]", word):
-            return word + "way"
-        # Check if the word starts with a vowel
-        if re.match(r"^[aeiou]", word, re.I):
-            return word + "way"
+    import string
+
+    vowels = "aeiouAEIOU"
+    punctuation = string.punctuation.replace(
+        "-", ""
+    )  # Exclude hyphen as it will be handled separately
+    digits = string.digits
+
+    def translate_word(word):
+        # Initial segmentation to separate leading and trailing punctuation and digits
+        initial_punct = ""
+        while word and (word[0] in punctuation):
+            initial_punct += word[0]
+            word = word[1:]
+
+        final_punct = ""
+        while word and (word[-1] in punctuation):
+            final_punct = word[-1] + final_punct
+            word = word[:-1]
+
+        if not word:  # Return early if no alphabetic characters are left
+            return initial_punct + word + final_punct
+
+        if any(char.isdigit() for char in word):  # Check if any digit is in the word
+            return initial_punct + word + final_punct + "way"
+
+        # Check if the word starts with a vowel and translate accordingly
+        if word[0] in vowels:
+            return initial_punct + word + "way" + final_punct
+
+        # Find the position of the first vowel for consonant handling
+        first_vowel_index = len(word)
+        for index, char in enumerate(word):
+            if char in vowels:
+                first_vowel_index = index
+                break
+
+        # Handle words that start with consonants
+        if first_vowel_index == len(word):  # No vowels in the word
+            return initial_punct + word + final_punct + "way"
         else:
-            # Extract the initial consonants and the rest of the word
-            match = re.match(r"^([^aeiou]+)(.*)", word, re.I)
-            if match:
-                # Special case for words like "myth"
-                if not re.search(r"[aeiou]", match.group(2), re.I):
-                    return word + "ay"
-                return match.group(2) + match.group(1) + "ay"
-            return word + "ay"
+            translated = word[first_vowel_index:] + word[:first_vowel_index] + "ay"
+            return initial_punct + translated + final_punct
 
-    def preserve_capitalization(original, transformed):
-        if original.istitle():
-            return transformed.capitalize()
-        elif original.isupper():
-            return transformed.upper()
-        return transformed
-
-    def process_hyphenated(word):
-        parts = word.split("-")
-        transformed_parts = [
-            preserve_capitalization(part, convert_word(part)) for part in parts
-        ]
-        return "-".join(transformed_parts)
-
-    def process_contraction(word):
-        parts = word.split("'")
-        if len(parts) > 1:
-            converted_part = convert_word(parts[0])
-            transformed_contraction = (
-                preserve_capitalization(parts[0], converted_part) + "'" + parts[1]
-            )
-            return transformed_contraction
-        return word + "ay"
-
-    words = re.findall(r"\b[\w\']+\b|[-.,!?;@\s]+", text)
-    result = []
-
-    for word in words:
-        if re.match(r"\b[\w\']+\b", word):
-            if "-" in word:
-                result.append(process_hyphenated(word))
-            elif "'" in word:
-                result.append(process_contraction(word))
-            else:
-                result.append(preserve_capitalization(word, convert_word(word)))
-        else:
-            result.append(word)
-
-    return "".join(result)
-
-
-# Ensure to run this function with the pytest framework to verify corrections have been implemented properly.
+    return " ".join(translate_word(word) for word in text.split())

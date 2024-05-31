@@ -99,6 +99,7 @@ def unittest_flow(
 - Take advantage of the features of `{unit_test_package}` to make the tests easy to write and maintain
 - Be easy to read and understand, with clean code and descriptive names
 - Be deterministic, so that the tests always pass or fail in the same way
+- Import all required packages used in the tests
 
 To help unit test the function above, list diverse scenarios that the function should be able to handle (and under each scenario, include a few examples as sub-bullets).""",
     }
@@ -132,7 +133,7 @@ To help unit test the function above, list diverse scenarios that the function s
     if elaboration_needed:
         elaboration_user_message = {
             "role": "user",
-            "content": f"""In addition to those scenarios above, list a few rare or unexpected edge cases (and as before, under each edge case, include a few examples as sub-bullets).""",
+            "content": f"""In addition to those scenarios above, list a maximum of {num_bullets-approx_min_cases_to_cover} rare or unexpected edge cases (and as before, under each edge case, include a few examples as sub-bullets).""",
         }
         elaboration_messages = [
             explain_system_message,
@@ -168,27 +169,39 @@ To help unit test the function above, list diverse scenarios that the function s
     package_comment = ""
     if unit_test_package == "pytest":
         package_comment = "# below, each test case is represented by a tuple passed to the @pytest.mark.parametrize decorator"
+
     execute_system_message = {
         "role": "system",
-        "content": "You are a world-class Python developer with an eagle eye for unintended bugs and edge cases. You write careful, accurate unit tests. When asked to reply only with code, you write all of your code in a single block.",
+        "content": (
+            "As a world-class Python developer, you possess a keen ability to spot unintended bugs "
+            "and edge cases. You are tasked with writing careful, meticulous unit tests. "
+            "Please ensure all your responses are in code only and formatted as a single, coherent block "
+            "to maintain consistency and readability. This approach is crucial for streamlining "
+            "the review process and ensuring accuracy in your submissions."
+        ),
     }
+
+    # Prepare dynamic parts of the user message
+    imports_and_function = f"""# imports
+    import {unit_test_package}  # used for our unit tests
+
+    # function to test
+    from src.{function_filename.split('/')[-1].replace('.py', '')} import {function_to_test.split('(')[0].strip()}
+    """
+
+    # Assemble the user message
     execute_user_message = {
         "role": "user",
         "content": f"""Using Python and the `{unit_test_package}` package, write a suite of unit tests for the function, following the cases above. Include helpful comments to explain each line. Reply only with code, formatted as follows:
 
-                    ```python
-                    # imports
-                    import {unit_test_package}  # used for our unit tests
-                    {{insert other imports as needed}}
+    ```python
+    {imports_and_function}
+    # unit tests
+    {package_comment}
+    {{insert unit test code here}}
 
-                    # function to test
-                    from src.{function_filename.split('/')[-1].replace('.py', '')} import {function_to_test.split('(')[0].strip()}
-
-                    # unit tests
-                    {package_comment}
-                    {{insert unit test code here}}
                     ```
-                    The imports and functions to test part has to be exactly like that.
+                    The imports and functions to test part has to be exactly like that! However, make sure to import all dependencies that you might add in the cases!
                     """,
     }
     execute_messages = [
@@ -204,6 +217,7 @@ To help unit test the function above, list diverse scenarios that the function s
     if print_text:
         print_messages([execute_system_message, execute_user_message])
 
+    logging.info("Running unit test generation.")
     execute_response = client.chat.completions.create(
         model=execute_model,
         messages=execute_messages,
@@ -224,6 +238,11 @@ To help unit test the function above, list diverse scenarios that the function s
             print_message_assistant(execution)
 
     code = execution.split("```python")[1].split("```")[0].strip()
+
+    # Check and insert missing imports if necessary
+    if "sys" in code and "import sys" not in code:
+        code = "import sys\n" + code
+
     try:
         ast.parse(code)
     except SyntaxError as e:
@@ -252,7 +271,7 @@ To help unit test the function above, list diverse scenarios that the function s
     with open(output_file, "w") as f:
         f.write(code)
 
-    print(f"Unit tests written to {output_file}")
+    logging.info(f"Unit tests written to {output_file}")
 
     return output_file
 
@@ -260,7 +279,7 @@ To help unit test the function above, list diverse scenarios that the function s
 def run_pytest(test_file):
     result = subprocess.run(["pytest", test_file], capture_output=True, text=True)
     sys.stdout.write(result.stdout)
-    sys.stderr.write(result.stderr)
+    # sys.stderr.write(result.stderr)
     return result.returncode, result.stdout
 
 
@@ -270,18 +289,73 @@ def correct_function(
     test_results,
     failed_test_cases,
     explain_model="gpt-3.5-turbo",
-    temperature=0.4,
+    temperature=0.6,
 ):
+    """
+    Corrects a Python function based on unit test failures provided as inputs.
+
+    Parameters
+    ----------
+    function_to_test : str
+        The name of the function to be corrected.
+    function_filename : str
+        The filename where the unit tests for the function are located.
+    test_results : str
+        String detailing the results of running the unit tests.
+    failed_test_cases : str
+        Detailed descriptions of which test cases failed and possibly why.
+    explain_model : str, optional
+        The name of the AI model used to generate corrections (default is "gpt-3.5-turbo").
+    temperature : float, optional
+        The creativity temperature for generating the correction (default is 0.4).
+
+    Returns
+    -------
+    tuple
+        A tuple containing the corrected function as a string and the path to the file where the corrected function is written.
+
+    Raises
+    ------
+    IndexError
+        If extracting the corrected function from the AI's response fails.
+
+    Examples
+    --------
+    >>> corrected_func, path = correct_function(
+            'my_func', 'test_my_func.py', 'Tests passed: 0, Tests failed: 1',
+            'Failed at input 3: expected 9, got 3', 'gpt-3.5-turbo', 0.4
+        )
+    """
     client = OpenAI()
     logging.info("Starting function correction...")
-    # logging.debug(f"Original function:\n{function_to_test}")
-    # logging.debug(f"Test results:\n{test_results}")
-    # logging.debug(f"Failed test cases:\n{failed_test_cases}")
 
     correction_system_message = {
         "role": "system",
-        "content": "You are a world-class Python developer with an eagle eye for unintended bugs and edge cases. You carefully correct code with great detail and accuracy.",
+        "content": f"""
+        Correction of Python Function Based on Unit Tests
+
+        Description:
+        You are provided with a Python unittest file named {function_filename} which includes several unit tests for a function called {function_to_test}. Your task is to create or modify the Python function {function_to_test} such that it passes all the provided unit tests. The unittest file includes various test cases with expected outputs that {function_to_test} needs to meet.
+
+        Input:
+
+        File Name: {function_filename} - This file contains all the unit tests for the function {function_to_test}.
+        Test Details: Describe each test case briefly, including inputs and the expected outputs.
+        Task:
+
+        Analyze the unit tests to understand the requirements and behaviors expected from {function_to_test}.
+        Write or revise the Python code for {function_to_test} to ensure it satisfies all the conditions set by the tests in {function_filename}.
+        Output:
+
+        Python code for {function_to_test} that successfully passes all the tests in the provided unittest file.
+        Additional Instructions:
+
+        Ensure the code is clean, well-commented, and adheres to standard Python conventions.
+        Provide any assumptions made during the code correction process.
+        If any test case is ambiguous or seems incorrect, note your observations and how you addressed them.
+        """,
     }
+
     correction_user_message = {
         "role": "user",
         "content": f"""Please correct the following Python function to make it pass the given unit tests. The following are the test results and error messages:
@@ -298,6 +372,7 @@ Ensure the corrected function maintains its intended functionality and fixes any
 {function_to_test}
 ```""",
     }
+
     correction_messages = [correction_system_message, correction_user_message]
     correction_response = client.chat.completions.create(
         model=explain_model,
@@ -306,9 +381,7 @@ Ensure the corrected function maintains its intended functionality and fixes any
         stream=False,
     )
     corrected_function_content = correction_response.choices[0].message.content
-    # logging.debug(f"Corrected function content:\n{corrected_function_content}")
 
-    # Extract the corrected function code
     try:
         corrected_function = (
             corrected_function_content.split("```python")[1].split("```")[0].strip()
@@ -319,7 +392,6 @@ Ensure the corrected function maintains its intended functionality and fixes any
             function_to_test  # Fallback to the original function in case of error
         )
 
-    # Write the corrected function to a file
     output_dir = os.path.join(os.getcwd(), "src")
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, function_filename)
@@ -327,7 +399,6 @@ Ensure the corrected function maintains its intended functionality and fixes any
     with open(output_file, "w") as f:
         f.write(corrected_function)
 
-    # logging.info(f"Corrected function written to {output_file}")
     return corrected_function, output_file
 
 
