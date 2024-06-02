@@ -4,57 +4,58 @@ import pytest  # used for our unit tests
 # function to test
 from src.inventory_manager import InventoryManager
 
-
 # unit tests
-# Test adding items with a valid quantity
-@pytest.mark.parametrize("item, quantity", [("item1", 5), ("item2", 3)])
-def test_add_item_valid_quantity(item, quantity):
-    manager = InventoryManager()
-    manager.add_item(item, quantity)
-    assert manager.check_inventory(item) == quantity
+@pytest.fixture
+def manager():
+    return InventoryManager()
 
+def test_add_item_positive_integer(manager):
+    manager.add_item("apple", 5)
+    assert manager.check_inventory("apple") == 5
 
-# Test handling invalid input
-@pytest.mark.parametrize("item, quantity", [("item3", -2), ("item4", 2.5)])
-def test_add_item_invalid_input(item, quantity):
-    manager = InventoryManager()
+def test_add_item_positive_float(manager):
+    manager.add_item("banana", 3.5)
+    assert manager.check_inventory("banana") == 3.5
+
+def test_add_item_zero_quantity(manager):
+    manager.add_item("orange", 0)
+    assert manager.check_inventory("orange") == 0
+
+def test_add_item_negative_quantity(manager):
     with pytest.raises(ValueError):
-        manager.add_item(item, quantity)
+        manager.add_item("pear", -2)
 
+def test_remove_item_positive_integer(manager):
+    manager.add_item("apple", 10)
+    manager.remove_item("apple", 3)
+    assert manager.check_inventory("apple") == 7
 
-# Test removing items with a valid quantity
-@pytest.mark.parametrize(
-    "item, initial_quantity, quantity_to_remove", [("item1", 5, 3), ("item2", 8, 8)]
-)
-def test_remove_item_valid_quantity(item, initial_quantity, quantity_to_remove):
-    manager = InventoryManager()
-    manager.add_item(item, initial_quantity)
-    manager.remove_item(item, quantity_to_remove)
-    assert manager.check_inventory(item) == initial_quantity - quantity_to_remove
+def test_remove_item_positive_float(manager):
+    manager.add_item("banana", 5.5)
+    manager.remove_item("banana", 2.5)
+    assert manager.check_inventory("banana") == 3.0
 
+def test_remove_item_zero_quantity(manager):
+    manager.add_item("orange", 8)
+    manager.remove_item("orange", 0)
+    assert manager.check_inventory("orange") == 8
 
-# Test handling errors and edge cases
-@pytest.mark.parametrize("item, quantity", [("item5", -2), ("item6", 3.5)])
-def test_remove_item_invalid_input(item, quantity):
-    manager = InventoryManager()
+def test_remove_item_negative_quantity(manager):
     with pytest.raises(ValueError):
-        manager.add_item(item, 5)
-        manager.remove_item(item, quantity)
+        manager.remove_item("pear", -1)
 
+def test_remove_item_not_found(manager):
+    with pytest.raises(ValueError):
+        manager.remove_item("grape", 3)
 
-# Test checking the inventory for different items
-@pytest.mark.parametrize("item, quantity", [("item1", 5), ("item7", 0)])
-def test_check_inventory(item, quantity):
-    manager = InventoryManager()
-    manager.add_item("item1", 5)
-    assert manager.check_inventory(item) == quantity
+def test_remove_item_not_enough_inventory(manager):
+    manager.add_item("melon", 5)
+    with pytest.raises(ValueError):
+        manager.remove_item("melon", 8)
 
+def test_check_inventory_existing_item(manager):
+    manager.add_item("apple", 10)
+    assert manager.check_inventory("apple") == 10
 
-# Test retrieving accurate inventory quantities
-def test_check_inventory_after_actions():
-    manager = InventoryManager()
-    item = "item1"
-    manager.add_item(item, 5)
-    assert manager.check_inventory(item) == 5
-    manager.remove_item(item, 2)
-    assert manager.check_inventory(item) == 3
+def test_check_inventory_non_existing_item(manager):
+    assert manager.check_inventory("kiwi") == 0

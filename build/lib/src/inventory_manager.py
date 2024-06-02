@@ -11,13 +11,13 @@ class InventoryManager:
 
         Args:
         item (str): The name of the item to add.
-        quantity (int): The number of items to add.
+        quantity (int or float): The number of items to add.
 
         Raises:
-        ValueError: If the quantity is negative or not an integer.
+        ValueError: If the quantity is negative or not a number.
         """
-        if not isinstance(quantity, int) or quantity < 0:
-            raise ValueError('Quantity must be a non-negative integer')
+        if not isinstance(quantity, (int, float)) or quantity < 0:
+            raise ValueError('Quantity must be a non-negative number')
 
         if item in self.inventory:
             self.inventory[item] += quantity
@@ -30,13 +30,13 @@ class InventoryManager:
 
         Args:
         item (str): The name of the item to remove.
-        quantity (int): The number of items to remove.
+        quantity (int or float): The number of items to remove.
 
         Raises:
         ValueError: If the quantity is negative or more than the available quantity.
         """
-        if not isinstance(quantity, int) or quantity < 0:
-            raise ValueError('Quantity must be a non-negative integer')
+        if not isinstance(quantity, (int, float)) or quantity < 0:
+            raise ValueError('Quantity must be a non-negative number')
 
         if item not in self.inventory:
             raise ValueError('Item not found in inventory')
@@ -45,9 +45,6 @@ class InventoryManager:
             raise ValueError('Not enough inventory')
 
         self.inventory[item] -= quantity
-
-        if self.inventory[item] == 0:
-            del self.inventory[item]
 
     def check_inventory(self, item):
         """
