@@ -335,24 +335,25 @@ def correct_function(
         Correction of Python Function Based on Unit Tests
 
         Description:
-        You are provided with a Python unittest file named {function_filename} which includes several unit tests for a function called {function_to_test}. Your task is to create or modify the Python function {function_to_test} such that it passes all the provided unit tests. The unittest file includes various test cases with expected outputs that {function_to_test} needs to meet.
+        A Python unittest file named {function_filename} contains several unit tests for the function {function_to_test}. Your task is to either modify or create {function_to_test} to pass all these tests. The modified or new function should preserve or enhance all functionalities of the original function, excluding any identified bugs.
 
         Input:
+        - File Name: {function_filename} - Contains unit tests for {function_to_test}.
+        - Test Details: Each test case is briefly described with inputs and the expected outputs.
 
-        File Name: {function_filename} - This file contains all the unit tests for the function {function_to_test}.
-        Test Details: Describe each test case briefly, including inputs and the expected outputs.
         Task:
+        1. Analyze the unit tests to fully understand the intended functionalities and required behaviors of {function_to_test}.
+        2. Modify or create the Python code for {function_to_test} ensuring it meets all test conditions in {function_filename}.
+        3. Maintain or expand upon the original function's capabilities, correcting or excluding only the faulty behaviors.
 
-        Analyze the unit tests to understand the requirements and behaviors expected from {function_to_test}.
-        Write or revise the Python code for {function_to_test} to ensure it satisfies all the conditions set by the tests in {function_filename}.
         Output:
+        - Updated Python code for {function_to_test} that successfully passes all the tests in the provided unittest file.
 
-        Python code for {function_to_test} that successfully passes all the tests in the provided unittest file.
         Additional Instructions:
-
-        Ensure the code is clean, well-commented, and adheres to standard Python conventions.
-        Provide any assumptions made during the code correction process.
-        If any test case is ambiguous or seems incorrect, note your observations and how you addressed them.
+        - Ensure the code is clean, well-commented, and follows standard Python coding conventions.
+        - Document any assumptions made during the code correction process.
+        - Address any ambiguous or incorrect test cases in your submission, detailing how you approached and resolved these issues.
+        - Consider edge cases and additional scenarios that may not be covered by the tests but are relevant to the function’s use cases.
         """,
     }
 
