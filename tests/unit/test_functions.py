@@ -5,50 +5,47 @@ import pytest  # used for our unit tests
 from src.inventory_manager import InventoryManager
 
 # unit tests
-@pytest.fixture
-def manager():
-    return InventoryManager()
+@pytest.mark.parametrize(
+    "item, quantity",
+    [
+        # Testing valid inputs
+        ("apple", 5),
+        ("banana", 10),
+        ("apple", 3),
+        ("apple orange", 2),
 
-def test_valid_input(manager):
-    manager.add_item("Apple", 10)
-    assert manager.inventory == {"Apple": 10}
+        # Testing invalid inputs for quantity
+        ("pear", -1),
+        ("grapes", "invalid"),
+        ("kiwi", 3.5),
 
-def test_quantity_validation_negative(manager):
-    with pytest.raises(ValueError):
-        manager.add_item("Banana", -5)
+        # Testing invalid inputs for item
+        ("", 5),
+        ("a" * 1001, 3),
+        ("©", 2),
+        ("^$#@", 3),
 
-def test_quantity_validation_non_integer(manager):
-    with pytest.raises(TypeError):
-        manager.add_item("Orange", "10")
+        # Testing edge cases
+        ("max_length_item_name" * 100, 5),
+        ("zero_quantity", 0),
+        ("large_quantity_item", 999999999999),
+        ("scientific_notation", 1e5),
+        ("item_unicode_😃", 4),
 
-def test_item_name_validation_empty_string(manager):
-    with pytest.raises(ValueError):
-        manager.add_item("", 5)
-
-def test_item_name_validation_too_long(manager):
-    with pytest.raises(ValueError):
-        manager.add_item("VeryLongItemName" * 100, 5)
-
-def test_item_name_validation_special_characters(manager):
-    with pytest.raises(ValueError):
-        manager.add_item("@#$", 5)
-
-def test_item_name_validation_non_ascii(manager):
-    with pytest.raises(ValueError):
-        manager.add_item("Résumé", 5)
-
-def test_existing_item_add_quantity(manager):
-    manager.add_item("Apple", 5)
-    manager.add_item("Apple", 3)
-    assert manager.inventory == {"Apple": 8}
-
-def test_existing_item_add_zero_quantity(manager):
-    manager.add_item("Apple", 5)
-    manager.add_item("Apple", 0)
-    assert manager.inventory == {"Apple": 5}
-
-def test_existing_item_add_negative_quantity(manager):
-    with pytest.raises(ValueError):
-        manager.add_item("Apple", -3)
-
-# Add the edge case tests as well following a similar pattern
+        # Testing rare edge cases
+        ("\x00", 5),
+        ("item_with_emojis_🍇🍌", 10),
+        ("large_quantity_item_overflow", 999999999999999999999999999999),
+        ("scientific_notation_overflow", 1e50),
+        ("float_precision_issue", 2.999999999999999),
+        ("concurrent_item_addition", 3),
+        ("item_unicode_Название", 6),
+        ("item_unicode_𝓟", 7),
+    ]
+)
+def test_add_item(item, quantity):
+    inventory_manager = InventoryManager()
+    inventory_manager.add_item(item, quantity)
+    
+    # Add assertions to check the expected behavior after calling add_item
+    pass

@@ -110,11 +110,11 @@ def main():
             break
 
         if previous_failed_cases == failed_test_cases:
+            failed_cases_changed += 1
             logging.warning(
-                "No change in failed test cases after correction. Reviewing test feasibility..."
+                f"Try {failed_cases_changed} - No change in failed test cases after correction. Reviewing test feasibility..."
             )
             # Additional logic to handle unchanged tests or regenerate tests
-            failed_cases_changed += 1
 
         if failed_cases_changed > 5:
             logging.info("Regenerating or analyzing tests due to repeated failures.")

@@ -31,10 +31,12 @@ conda create -n unittest-LLM python=3.11
 or
 
 ```bash
-python3.11 -m venv unittest-LLM
+python3 -m venv unittest-LLM
 source unittest-LLM/bin/activate
-echo "export OPENAI_API_KEY=777777777777" >> unittest-LLM/bin/activate
-echo "unset OPENAI_API_KEY" >> unittest-LLM/bin/deactivate
+export OPENAI_API_KEY=77777
+pip install -r requirements.txt
+# echo "export OPENAI_API_KEY=777777777777" >> unittest-LLM/bin/activate
+# echo "unset OPENAI_API_KEY" >> unittest-LLM/bin/deactivate
 ```
 
 
