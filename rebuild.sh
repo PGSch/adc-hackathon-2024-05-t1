@@ -10,4 +10,4 @@ python3 setup.py bdist_wheel
 pip install --force-reinstall dist/adchackathon202405t1-0.0.7-py3-none-any.whl
 
 # Run the module
-python3 -m src --user_input "your_input" --underlying_repo "your_repo"
+python3 -m src --file_name "inventory_manager.py" --class_or_method "InventoryManager"

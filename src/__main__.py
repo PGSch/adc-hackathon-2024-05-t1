@@ -112,15 +112,6 @@ def read_class_or_method(source_file: str, name: str):
     return code, source_path
 
 
-# # Example usage:
-# try:
-#     class_or_method_code, path = read_class_or_method('inventory_manager.py', 'InventoryManager')
-#     print("Class or method code:\n", class_or_method_code)
-#     print("Found in file:", path)
-# except Exception as e:
-#     print(str(e))
-
-
 def print_test_file():
     output_file = os.path.join(os.getcwd(), "tests/unit/test_functions.py")
 
@@ -137,20 +128,23 @@ def print_test_file():
 
 def main():
     parser = argparse.ArgumentParser(description="Description of your script")
-    parser.add_argument("--user_input", type=str, required=True, help="User input")
+    parser.add_argument("--file_name", type=str, required=True, help="User input")
     parser.add_argument(
-        "--underlying_repo", type=str, required=True, help="Underlying repository"
+        "--class_or_method", type=str, required=True, help="Underlying repository"
     )
 
     args = parser.parse_args()
-    user_input = args.user_input
-    underlying_repo = args.underlying_repo
+    file_name = args.file_name
+    class_or_method = args.class_or_method
 
-    print(f"user_input: {user_input}")
-    print(f"underlying_repo: {underlying_repo}")
+    print(f"file_name: {file_name}")
+    print(f"class_or_method: {class_or_method}")
 
+    # function_to_test, function_filename = read_class_or_method(
+    #     "inventory_manager.py", "InventoryManager"
+    # )
     function_to_test, function_filename = read_class_or_method(
-        "inventory_manager.py", "InventoryManager"
+        file_name, class_or_method
     )
     logging.info("Starting test generation and correction loop...")
     previous_failed_cases = None
