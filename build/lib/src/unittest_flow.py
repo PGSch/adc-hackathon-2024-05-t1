@@ -54,18 +54,33 @@ def unittest_flow(
             pass
 
     # Step 1: Generate an explanation of the function
+    # Updated Prompt for Step 1: Generate a detailed explanation of the function
     explain_system_message = {
         "role": "system",
-        "content": "You are a world-class Python developer with an eagle eye for unintended bugs and edge cases. You carefully explain code with great detail and accuracy. You organize your explanations in markdown-formatted, bulleted lists.",
+        "content": """
+        You are a world-class Python developer with an eagle eye for unintended bugs and edge cases. Your task is to meticulously dissect the provided Python function. You must:
+        - Explain each element of the function in detail, specifying what each part is intended to do.
+        - Identify and describe each logical branch and decision point in the function.
+        - Suggest potential edge cases that could affect the function's behavior.
+        - Organize your explanation in a markdown-formatted, bulleted list, ensuring clarity and thoroughness.
+        """,
     }
+
     explain_user_message = {
         "role": "user",
-        "content": f"""Please explain the following Python function. Review what each element of the function is doing precisely and what the author's intentions may have been. Organize your explanation as a markdown-formatted, bulleted list.
-
-```python
-{function_to_test}
-```""",
+        "content": f"""
+        Please provide a comprehensive explanation of the following Python function. Examine the function's structure and code elements thoroughly:
+        - Describe what each line of code is doing and the intentions behind them.
+        - Identify all conditional branches and loops, explaining what conditions lead to different branches of execution.
+        - Discuss any potential edge cases and unusual scenarios that the function must handle.
+        - Organize your insights and findings into a markdown-formatted, bulleted list for clarity.
+        This is the function to test:
+        
+        ```python
+        {function_to_test}
+        ```""",
     }
+
     explain_messages = [explain_system_message, explain_user_message]
     if print_text:
         print_messages(explain_messages)
@@ -95,7 +110,6 @@ def unittest_flow(
         "role": "user",
         "content": f"""A good unit test suite should aim to:
 - Test the function's behavior for a wide range of possible inputs
-- Test edge cases that the author may not have foreseen
 - Take advantage of the features of `{unit_test_package}` to make the tests easy to write and maintain
 - Be easy to read and understand, with clean code and descriptive names
 - Be deterministic, so that the tests always pass or fail in the same way
@@ -276,11 +290,25 @@ To help unit test the function above, list diverse scenarios that the function s
     return output_file
 
 
+import subprocess
+import sys
+
+
 def run_pytest(test_file):
-    result = subprocess.run(["pytest", test_file], capture_output=True, text=True)
-    sys.stdout.write(result.stdout)
-    # sys.stderr.write(result.stderr)
-    return result.returncode, result.stdout
+    try:
+        # Use subprocess.run to execute pytest and capture stdout and stderr
+        result = subprocess.run(["pytest", test_file], capture_output=True, text=True)
+        # Return the structured result containing the return code, stdout, and stderr
+        sys.stdout.write(result.stdout)
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
+    except subprocess.CalledProcessError as e:
+        # Handle potential errors during the subprocess execution
+        sys.stderr.write(f"An error occurred while running pytest: {e}\n")
+        return {"returncode": e.returncode, "stdout": "", "stderr": str(e)}
 
 
 def correct_function(
@@ -403,19 +431,31 @@ Ensure the corrected function maintains its intended functionality and fixes any
     return corrected_function, output_file
 
 
-def extract_failed_test_cases(test_output):
+import re
+import logging
+
+
+import re
+import logging
+
+
+def extract_failed_test_cases(pytest_result):
     try:
-        # Pattern to match the failed test cases
-        failed_cases_pattern = r"________________ (.*?) __________________"
+        test_output = pytest_result[
+            "stdout"
+        ]  # Extract stdout containing the test output
+
+        # Improved pattern to match the failed test cases accurately
+        failed_cases_pattern = r"FAILED\s+(.*?)(?=:)"
         failed_cases = re.findall(failed_cases_pattern, test_output)
 
-        # Pattern to match the error messages associated with the failed test cases
-        error_messages_pattern = r"E\s+(.*?)\n"
+        # Improved pattern to extract error messages following the failed test case pattern
+        error_messages_pattern = r"FAILED.*?\n(.*?)\n\n"  # Adjusted to capture error message blocks more effectively
         error_messages = re.findall(error_messages_pattern, test_output, re.DOTALL)
 
-        # Combine the failed cases with their respective error messages
+        # Combine failed cases with their respective error messages
         failed_cases_with_errors = [
-            f"Test case: {case}\nError: {error}"
+            f"Test case: {case.strip()}\nError: {error.strip()}"
             for case, error in zip(failed_cases, error_messages)
         ]
 
