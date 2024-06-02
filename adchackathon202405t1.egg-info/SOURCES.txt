@@ -10,11 +10,11 @@ adchackathon202405t1.egg-info/requires.txt
 adchackathon202405t1.egg-info/top_level.txt
 src/__init__.py
 src/__main__.py
+src/asdf1.py
+src/asdf2.py
 src/config.py
 src/config.yaml
-src/pig_latin.py
+src/inventory_manager.py
+src/inventory_manager_original.py
 src/unittest_flow.py
 src/unittest_python.py
-tests/unit/__init__.py
-tests/unit/test_functions.py
-tests/unit/test_pig_latin.py

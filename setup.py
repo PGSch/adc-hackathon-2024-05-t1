@@ -1,16 +1,17 @@
 from setuptools import setup, find_packages
 
 # Read requirements.txt and populate the install_requires list
-install_requires = []
-with open("requirements.txt", "r") as file:
-    for line in file:
-        requirement = line.strip()
-        if requirement:
-            install_requires.append(requirement)
+install_requires = [
+    "openai",
+    "pytest",
+    "pytest-cov",
+    "setuptools",
+    "wheel",
+]
 
 setup(
     name="adchackathon202405t1",
-    version="0.0.3",
+    version="0.0.7",
     packages=find_packages(),
     install_requires=install_requires,
     author=["Patrick", "Andi"],

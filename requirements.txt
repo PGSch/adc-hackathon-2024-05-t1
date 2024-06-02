@@ -1,2 +1,5 @@
 openai
 pytest
+pytest-cov
+setuptools
+wheel
