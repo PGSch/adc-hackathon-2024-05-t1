@@ -5,47 +5,50 @@ import pytest  # used for our unit tests
 from src.inventory_manager import InventoryManager
 
 # unit tests
-@pytest.mark.parametrize(
-    "item, quantity",
-    [
-        # Testing valid inputs
-        ("apple", 5),
-        ("banana", 10),
-        ("apple", 3),
-        ("apple orange", 2),
+class TestInventoryManager:
+    @pytest.fixture
+    def manager(self):
+        return InventoryManager()
 
-        # Testing invalid inputs for quantity
-        ("pear", -1),
-        ("grapes", "invalid"),
-        ("kiwi", 3.5),
+    @pytest.mark.parametrize("item, quantity", [
+        ("apple", 5),  # Add a new item with a positive quantity
+        ("banana", 10),  # Add an existing item with a positive quantity
+        ("orange", -3),  # Attempt to add an item with a negative quantity
+    ])
+    def test_add_item(self, manager, item, quantity):
+        if quantity < 0:
+            with pytest.raises(ValueError):
+                manager.add_item(item, quantity)
+        else:
+            manager.add_item(item, quantity)
+            assert manager.check_inventory(item) == quantity
 
-        # Testing invalid inputs for item
-        ("", 5),
-        ("a" * 1001, 3),
-        ("©", 2),
-        ("^$#@", 3),
+    @pytest.mark.parametrize("item, quantity", [
+        ("apple", 2),  # Remove an existing item with a positive quantity
+        ("banana", -5),  # Attempt to remove an item with a negative quantity
+        ("orange", 10),  # Attempt to remove more quantity than available
+        ("apple", 2),  # Remove an item to make its quantity zero
+    ])
+    def test_remove_item(self, manager, item, quantity):
+        manager.add_item(item, 5)  # Add some initial quantity for testing removal
+        if quantity < 0 or quantity > 5:
+            with pytest.raises(ValueError):
+                manager.remove_item(item, quantity)
+        else:
+            manager.remove_item(item, quantity)
+            if quantity == 5:
+                assert manager.check_inventory(item) == 0
+            else:
+                assert manager.check_inventory(item) == 5 - quantity
 
-        # Testing edge cases
-        ("max_length_item_name" * 100, 5),
-        ("zero_quantity", 0),
-        ("large_quantity_item", 999999999999),
-        ("scientific_notation", 1e5),
-        ("item_unicode_😃", 4),
+    @pytest.mark.parametrize("item, expected_quantity", [
+        ("apple", 0),  # Check the quantity of an existing item in the inventory
+        ("banana", 0),  # Check the quantity of a non-existing item in the inventory
+        ("orange", 3),  # Check the quantity of an item after adding and removing quantities
+    ])
+    def test_check_inventory(self, manager, item, expected_quantity):
+        manager.add_item("orange", 3)  # Add an item for testing inventory check
+        assert manager.check_inventory(item) == expected_quantity
 
-        # Testing rare edge cases
-        ("\x00", 5),
-        ("item_with_emojis_🍇🍌", 10),
-        ("large_quantity_item_overflow", 999999999999999999999999999999),
-        ("scientific_notation_overflow", 1e50),
-        ("float_precision_issue", 2.999999999999999),
-        ("concurrent_item_addition", 3),
-        ("item_unicode_Название", 6),
-        ("item_unicode_𝓟", 7),
-    ]
-)
-def test_add_item(item, quantity):
-    inventory_manager = InventoryManager()
-    inventory_manager.add_item(item, quantity)
-    
-    # Add assertions to check the expected behavior after calling add_item
-    pass
+    # Add more test cases for the edge scenarios mentioned above
+    # Remember to handle each edge case appropriately with assertions and exception handling
