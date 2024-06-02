@@ -112,15 +112,6 @@ def read_class_or_method(source_file: str, name: str):
     return code, source_path
 
 
-# # Example usage:
-# try:
-#     class_or_method_code, path = read_class_or_method('inventory_manager.py', 'InventoryManager')
-#     print("Class or method code:\n", class_or_method_code)
-#     print("Found in file:", path)
-# except Exception as e:
-#     print(str(e))
-
-
 def print_test_file():
     output_file = os.path.join(os.getcwd(), "tests/unit/test_functions.py")
 
@@ -137,25 +128,25 @@ def print_test_file():
 
 def main():
     parser = argparse.ArgumentParser(description="Description of your script")
-    parser.add_argument("--user_input", type=str, required=True, help="User input")
+    parser.add_argument("--file_name", type=str, required=True, help="User input")
     parser.add_argument(
-        "--underlying_repo", type=str, required=True, help="Underlying repository"
+        "--class_or_method", type=str, required=True, help="Underlying repository"
     )
 
     args = parser.parse_args()
-    user_input = args.user_input
-    underlying_repo = args.underlying_repo
+    file_name = args.file_name
+    class_or_method = args.class_or_method
 
-    print(f"user_input: {user_input}")
-    print(f"underlying_repo: {underlying_repo}")
+    print(f"file_name: {file_name}")
+    print(f"class_or_method: {class_or_method}")
 
+    # function_to_test, function_filename = read_class_or_method(
+    #     "inventory_manager.py", "InventoryManager"
+    # )
     function_to_test, function_filename = read_class_or_method(
-        "inventory_manager.py", "InventoryManager"
+        file_name, class_or_method
     )
     logging.info("Starting test generation and correction loop...")
-    previous_failed_cases = None
-    failed_cases_changed = 0
-    failed_cases_changed_max = 3
     # Generate the tests with 100% code coverage
     test_file = unittest_flow(
         function_to_test,
@@ -168,17 +159,21 @@ def main():
         execute_model=execute_model,
     )
 
-    # for _ in range(0, 3):
+    previous_failed_cases = None
+    failed_cases_changed = 0
+    failed_cases_changed_max = 3
+
     idx = 3
     ref_idx = idx
     while idx > 0:
         # Run the tests
         test_output = run_pytest(test_file)
-        failed_test_cases = extract_failed_test_cases(test_output)
 
         if test_output["returncode"] == 0:
-            logging.info("All tests passed successfully.")
+            logging.info("All tests passed successfully!")
             break
+
+        failed_test_cases = extract_failed_test_cases(test_output)
 
         if previous_failed_cases == failed_test_cases:
             failed_cases_changed += 1
@@ -187,7 +182,7 @@ def main():
             )
             # Additional logic to handle unchanged tests or regenerate tests
 
-        if failed_cases_changed > failed_cases_changed_max - 1:
+        if failed_cases_changed == failed_cases_changed_max:
             logging.info("Regenerating or analyzing tests due to repeated failures.")
             # Generate the tests again and hope for new better tests
             test_file = unittest_flow(
