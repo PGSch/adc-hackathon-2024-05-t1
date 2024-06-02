@@ -1,4 +1,5 @@
 class InventoryManager:
+
     def __init__(self):
         """
         Initializes the inventory manager with an empty inventory.
@@ -14,10 +15,10 @@ class InventoryManager:
         quantity (int): The number of items to add.
 
         Raises:
-        ValueError: If the quantity is negative.
+        ValueError: If the quantity is negative or not an integer.
         """
-        if quantity < 0:
-            raise ValueError("Quantity must be non-negative")
+        if not isinstance(quantity, int) or quantity < 0:
+            raise ValueError('Quantity must be a non-negative integer')
         if item in self.inventory:
             self.inventory[item] += quantity
         else:
@@ -34,13 +35,15 @@ class InventoryManager:
         Raises:
         ValueError: If the quantity is negative or more than the available quantity.
         """
-        if quantity < 0:
-            raise ValueError("Quantity must be non-negative")
-        if item not in self.inventory or self.inventory[item] < quantity:
-            raise ValueError("Not enough inventory")
+        if not isinstance(quantity, int) or quantity < 0:
+            raise ValueError('Quantity must be a non-negative integer')
+        if item not in self.inventory:
+            raise ValueError('Item not found in inventory')
+        
+        if self.inventory[item] < quantity:
+            raise ValueError('Not enough inventory')
+        
         self.inventory[item] -= quantity
-        if self.inventory[item] == 0:
-            del self.inventory[item]
 
     def check_inventory(self, item):
         """

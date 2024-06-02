@@ -1,0 +1,2 @@
+[console_scripts]
+adchackathon202405t1 = src.__main__:main
