@@ -1,4 +1,5 @@
 class InventoryManager:
+
     def __init__(self):
         """
         Initializes the inventory manager with an empty inventory.
@@ -11,13 +12,13 @@ class InventoryManager:
 
         Args:
         item (str): The name of the item to add.
-        quantity (int or float): The number of items to add.
+        quantity (int): The number of items to add.
 
         Raises:
-        ValueError: If the quantity is negative or not a number.
+        ValueError: If the quantity is negative.
         """
-        if not isinstance(quantity, (int, float)) or quantity < 0:
-            raise ValueError('Quantity must be a non-negative number')
+        if quantity < 0:
+            raise ValueError('Quantity must be non-negative')
 
         if item in self.inventory:
             self.inventory[item] += quantity
@@ -30,21 +31,24 @@ class InventoryManager:
 
         Args:
         item (str): The name of the item to remove.
-        quantity (int or float): The number of items to remove.
+        quantity (int): The number of items to remove.
 
         Raises:
-        ValueError: If the quantity is negative or more than the available quantity.
+        ValueError: If the quantity is negative, the item is not in the inventory, or the quantity to remove exceeds the available quantity.
         """
-        if not isinstance(quantity, (int, float)) or quantity < 0:
-            raise ValueError('Quantity must be a non-negative number')
+        if quantity < 0:
+            raise ValueError('Quantity must be non-negative')
 
         if item not in self.inventory:
-            raise ValueError('Item not found in inventory')
+            raise ValueError('Not enough inventory')
 
         if self.inventory[item] < quantity:
             raise ValueError('Not enough inventory')
 
         self.inventory[item] -= quantity
+
+        if self.inventory[item] == 0:
+            del self.inventory[item]
 
     def check_inventory(self, item):
         """
@@ -56,4 +60,7 @@ class InventoryManager:
         Returns:
         int: The quantity of the item in the inventory.
         """
+        if not isinstance(item, str):
+            raise TypeError('Item should be a string')
+
         return self.inventory.get(item, 0)

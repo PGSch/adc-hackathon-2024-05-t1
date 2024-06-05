@@ -25,6 +25,7 @@ if overall_model:
     plan_model = overall_model
     execute_model = overall_model
 else:
+    correct_model = "gpt-3.5-turbo"
     explain_model = "gpt-3.5-turbo"
     plan_model = "gpt-3.5-turbo"
     execute_model = "gpt-3.5-turbo"
@@ -169,11 +170,22 @@ def main():
         # Run the tests
         test_output = run_pytest(test_file)
 
+        # logging.info(50 * "#")
+        # logging.info(50 * "\n")
+        # print(test_output)
+        # logging.info(50 * "\n")
+        # logging.info(50 * "#")
+
         if test_output["returncode"] == 0:
             logging.info("All tests passed successfully!")
             break
 
         failed_test_cases = extract_failed_test_cases(test_output)
+
+        logging.info(50 * "#")
+        logging.info("failed_test_cases:")
+        print(failed_test_cases)
+        logging.info(50 * "#")
 
         if previous_failed_cases == failed_test_cases:
             failed_cases_changed += 1
@@ -186,7 +198,7 @@ def main():
             logging.info("Regenerating or analyzing tests due to repeated failures.")
             # Generate the tests again and hope for new better tests
             test_file = unittest_flow(
-                corrected_function,
+                function_to_test,
                 function_filename,  # Ensure the filename is passed
                 approx_min_cases_to_cover=10,
                 print_text=False,
@@ -206,7 +218,7 @@ def main():
             function_filename,
             test_output,
             failed_test_cases,
-            explain_model=explain_model,
+            correct_model=correct_model,
             temperature=0.4 + 0.1 * failed_cases_changed,
         )
         logging.debug(f"Corrected function:\n{corrected_function}")

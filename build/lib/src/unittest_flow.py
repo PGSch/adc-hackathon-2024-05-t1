@@ -58,27 +58,33 @@ def unittest_flow(
     explain_system_message = {
         "role": "system",
         "content": """
-        You are a world-class Python developer with an eagle eye for unintended bugs and edge cases. Your task is to meticulously dissect the provided Python function. You must:
-        - Explain each element of the function in detail, specifying what each part is intended to do.
-        - Identify and describe each logical branch and decision point in the function.
-        - Suggest potential edge cases that could affect the function's behavior.
-        - Organize your explanation in a markdown-formatted, bulleted list, ensuring clarity and thoroughness.
+        You are a skilled Python developer focused on test-driven development with pytest, particularly adept at enhancing code coverage. Your task is to meticulously dissect the provided Python function and create corresponding unit tests. Ensure:
+        - Each element of the function is explained in detail, specifying what each part is intended to do.
+        - Each logical branch and decision point in the function is identified and described.
+        - Tests are organized and named properly to ensure they are recognized by pytest when running with '--cov=src'.
+        - Provide instructions on how to set up pytest and pytest-cov in a markdown-formatted, bulleted list.
         """,
     }
 
     explain_user_message = {
         "role": "user",
         "content": f"""
-        Please provide a comprehensive explanation of the following Python function. Examine the function's structure and code elements thoroughly:
+        Please provide a comprehensive explanation of the following Python function and develop unit tests that enhance code coverage when analyzed with 'pytest --cov=src'. Examine the function's structure and code elements thoroughly:
         - Describe what each line of code is doing and the intentions behind them.
         - Identify all conditional branches and loops, explaining what conditions lead to different branches of execution.
-        - Discuss any potential edge cases and unusual scenarios that the function must handle.
-        - Organize your insights and findings into a markdown-formatted, bulleted list for clarity.
+        - Ensure tests are named according to Python’s standard unittest naming conventions to be detected by pytest.
+        - Organize your insights, findings, and test code into a markdown-formatted list for clarity.
         This is the function to test:
-        
+
         ```python
         {function_to_test}
-        ```""",
+        ```
+
+        Include a setup guide for pytest and pytest-cov:
+        - Installation of pytest and pytest-cov.
+        - Configuration necessary in 'pytest.ini' or 'pyproject.toml' to recognize the 'src' directory for coverage.
+        - How to run the tests to generate a coverage report.
+        """,
     }
 
     explain_messages = [explain_system_message, explain_user_message]
@@ -108,14 +114,16 @@ def unittest_flow(
     # Step 2: Generate a plan to write a unit test
     plan_user_message = {
         "role": "user",
-        "content": f"""A good unit test suite should aim to:
-- Test the function's behavior for a wide range of possible inputs
-- Take advantage of the features of `{unit_test_package}` to make the tests easy to write and maintain
-- Be easy to read and understand, with clean code and descriptive names
-- Be deterministic, so that the tests always pass or fail in the same way
-- Import all required packages used in the tests
+        "content": f"""A comprehensive unit test suite is critical for ensuring code quality and functionality across various scenarios. Here’s how to make the most of `{unit_test_package}` for this purpose:
+- Ensure that the function's behavior is thoroughly tested across a broad range of possible inputs.
+- Utilize the features of `{unit_test_package}` to write and maintain tests effectively and efficiently.
+- Maintain clarity in your tests with clean code and descriptive names that reflect the test’s purpose.
+- Write deterministic tests that consistently pass or fail under the same conditions, ensuring reliability.
+- Properly manage dependencies by importing all required packages used in the tests.
 
-To help unit test the function above, list diverse scenarios that the function should be able to handle (and under each scenario, include a few examples as sub-bullets).""",
+Also include:
+- Instructions on configuring `{unit_test_package}` to recognize test cases for code coverage, particularly ensuring the `src` directory is included when running `pytest --cov=src`.
+- Examples on how to execute tests to generate a coverage report, explaining any relevant flags or options.""",
     }
     plan_messages = [
         explain_system_message,
@@ -187,11 +195,13 @@ To help unit test the function above, list diverse scenarios that the function s
     execute_system_message = {
         "role": "system",
         "content": (
-            "As a world-class Python developer, you possess a keen ability to spot unintended bugs "
-            "and edge cases. You are tasked with writing careful, meticulous unit tests. "
-            "Please ensure all your responses are in code only and formatted as a single, coherent block "
-            "to maintain consistency and readability. This approach is crucial for streamlining "
-            "the review process and ensuring accuracy in your submissions."
+            "As a proficient Python developer experienced with pytest, your goal is to achieve 100% code coverage "
+            "through thoughtful and practical unit tests. Write clear, concise, and efficient tests that cover all "
+            "functional aspects of the code without delving into overly complex or unrealistic edge cases. Ensure that "
+            "your test scripts are straightforward and maintain readability and consistency. Your tests should be formatted "
+            "as a single coherent block to facilitate easy recognition by the pytest framework when executing `pytest --cov=src`. "
+            "This focus on practical and comprehensive testing is crucial for accurately evaluating the functionality and "
+            "robustness of the code under typical conditions."
         ),
     }
 
@@ -213,10 +223,8 @@ To help unit test the function above, list diverse scenarios that the function s
     # unit tests
     {package_comment}
     {{insert unit test code here}}
-
-                    ```
-                    The imports and functions to test part has to be exactly like that! However, make sure to import all dependencies that you might add in the cases!
-                    """,
+    ```
+    The imports and functions to test part has to be exactly like that! However, make sure to import all dependencies that you might add in the cases!""",
     }
     execute_messages = [
         execute_system_message,
@@ -316,7 +324,7 @@ def correct_function(
     function_filename,
     test_results,
     failed_test_cases,
-    explain_model="gpt-3.5-turbo",
+    correct_model="gpt-3.5-turbo",
     temperature=0.6,
 ):
     """
@@ -332,7 +340,7 @@ def correct_function(
         String detailing the results of running the unit tests.
     failed_test_cases : str
         Detailed descriptions of which test cases failed and possibly why.
-    explain_model : str, optional
+    correct_model : str, optional
         The name of the AI model used to generate corrections (default is "gpt-3.5-turbo").
     temperature : float, optional
         The creativity temperature for generating the correction (default is 0.4).
@@ -382,6 +390,7 @@ def correct_function(
         - Document any assumptions made during the code correction process.
         - Address any ambiguous or incorrect test cases in your submission, detailing how you approached and resolved these issues.
         - Consider edge cases and additional scenarios that may not be covered by the tests but are relevant to the function’s use cases.
+        - Do your absolute best!
         """,
     }
 
@@ -404,7 +413,7 @@ Ensure the corrected function maintains its intended functionality and fixes any
 
     correction_messages = [correction_system_message, correction_user_message]
     correction_response = client.chat.completions.create(
-        model=explain_model,
+        model=correct_model,
         messages=correction_messages,
         temperature=temperature,
         stream=False,
@@ -445,21 +454,13 @@ def extract_failed_test_cases(pytest_result):
             "stdout"
         ]  # Extract stdout containing the test output
 
-        # Improved pattern to match the failed test cases accurately
-        failed_cases_pattern = r"FAILED\s+(.*?)(?=:)"
-        failed_cases = re.findall(failed_cases_pattern, test_output)
-
-        # Improved pattern to extract error messages following the failed test case pattern
-        error_messages_pattern = r"FAILED.*?\n(.*?)\n\n"  # Adjusted to capture error message blocks more effectively
-        error_messages = re.findall(error_messages_pattern, test_output, re.DOTALL)
-
-        # Combine failed cases with their respective error messages
-        failed_cases_with_errors = [
-            f"Test case: {case.strip()}\nError: {error.strip()}"
-            for case, error in zip(failed_cases, error_messages)
-        ]
-
-        return failed_cases_with_errors
+        failed_cases_pattern = r"short test summary info =+\n(.*?)(?=\n=)"
+        failed_cases = re.search(failed_cases_pattern, test_output, re.DOTALL)
+        if failed_cases:
+            # Strip to remove leading/trailing whitespace and newlines
+            return failed_cases.group(1).strip()
+        else:
+            return "No matches found."
     except Exception as e:
         logging.error(f"Error extracting failed test cases: {e}")
-        return []
+        return test_output
