@@ -1,218 +1,107 @@
-# src/__main__.py
-
-from src.unittest_flow import (
-    unittest_flow,
-    run_pytest,
-    correct_function,
-    extract_failed_test_cases,
-)
-
-import sys
+import argparse
 import logging
 import os
-import ast
-import argparse
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+from src.unittest_flow import UnitTestFlow
 
 
-openai_api_key = os.getenv("OPENAI_API_KEY")
-# overall_model = "gpt-4o"
-overall_model = False
-if overall_model:
-    explain_model = overall_model
-    plan_model = overall_model
-    execute_model = overall_model
-else:
-    explain_model = "gpt-3.5-turbo"
-    plan_model = "gpt-3.5-turbo"
-    execute_model = "gpt-3.5-turbo"
-if openai_api_key is None:
-    raise ValueError("The OpenAI API key must be set in the environment.")
+def configure_logging():
+    """Configures the basic logging setup."""
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
 
-import os
-import ast
+def get_openai_models():
+    """Retrieve OpenAI model settings from environment variables or use defaults."""
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise ValueError("The OpenAI API key must be set in the environment.")
 
-
-def find_class_or_method(node, name):
-    """
-    Recursively search for a class or method in the AST node.
-
-    Args:
-        node (ast.AST): The AST node to search within.
-        name (str): The name of the class or method to find.
-
-    Returns:
-        str: The source code of the class or method if found, otherwise None.
-    """
-    # Enhanced debugging: Print current node type and name (if applicable)
-    if hasattr(node, "name"):
-        print(f"Visiting node: {node.__class__.__name__} with name: {node.name}")
-    else:
-        print(f"Visiting node: {node.__class__.__name__}")
-
-    if isinstance(node, ast.ClassDef) and node.name == name:
-        print(f"Class {name} found")
-        return ast.unparse(node)
-    elif isinstance(node, ast.ClassDef):
-        for subnode in node.body:
-            result = find_class_or_method(subnode, name)
-            if result:
-                return result
-    elif isinstance(node, ast.Module):
-        for subnode in node.body:
-            result = find_class_or_method(subnode, name)
-            if result:
-                return result
-    return None
-
-
-def read_class_or_method(source_file: str, name: str):
-    """
-    Reads a specific class or method from a Python source file.
-
-    Args:
-        source_file (str): The file name of the Python source.
-        name (str): The name of the class or method to read.
-
-    Returns:
-        str: The source code of the specified class or method.
-        str: The absolute path of the file where the class or method was found.
-    """
-    # Construct the absolute path to the Python source file
-    current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    source_path = os.path.join(current_file_dir, source_file)
-
-    try:
-        # Read the contents of the Python source file
-        with open(source_path, "r") as file:
-            source_code = file.read()
-    except IOError as e:
-        raise IOError(f"Unable to read file {source_file}: {e}")
-
-    print(f"File read successfully from {source_path}")
-
-    # Parse the source code into an AST
-    tree = ast.parse(source_code)
-
-    print("AST parsed successfully")
-
-    # Recursively find the class or method
-    code = find_class_or_method(tree, name)
-
-    if code is None:
-        raise ValueError(
-            f"Class or method '{name}' not found in '{source_file}'. Code not found after AST parsing."
-        )
-
-    print(f"Code for {name} found successfully")
-
-    return code, source_path
-
-
-def print_test_file():
-    output_file = os.path.join(os.getcwd(), "tests/unit/test_functions.py")
-
-    if not os.path.exists(output_file):
-        print(f"The file {output_file} does not exist.")
-        return
-
-    with open(output_file, "r") as f:
-        content = f.read()
-
-    print(f"Contents of {output_file}:\n")
-    print(content)
+    # Set the model names based on environment configuration or defaults
+    overall_model = os.getenv("OVERALL_MODEL", "gpt-3.5-turbo")
+    return overall_model, overall_model, overall_model
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Description of your script")
-    parser.add_argument("--file_name", type=str, required=True, help="User input")
+    configure_logging()
+    explain_model, plan_model, execute_model = get_openai_models()
+
+    parser = argparse.ArgumentParser(
+        description="Generate and correct unit tests for a specified function."
+    )
     parser.add_argument(
-        "--class_or_method", type=str, required=True, help="Underlying repository"
+        "--file_name",
+        type=str,
+        required=True,
+        help="The file name containing the target function or class.",
+    )
+    parser.add_argument(
+        "--class_or_method",
+        type=str,
+        required=True,
+        help="The name of the class or method to test.",
     )
 
     args = parser.parse_args()
-    file_name = args.file_name
-    class_or_method = args.class_or_method
-
-    print(f"file_name: {file_name}")
-    print(f"class_or_method: {class_or_method}")
-
-    # function_to_test, function_filename = read_class_or_method(
-    #     "inventory_manager.py", "InventoryManager"
-    # )
-    function_to_test, function_filename = read_class_or_method(
-        file_name, class_or_method
-    )
+    logging.info(f"file_name: {args.file_name}")
+    logging.info(f"class_or_method: {args.class_or_method}")
     logging.info("Starting test generation and correction loop...")
-    # Generate the tests with 100% code coverage
-    test_file = unittest_flow(
-        function_to_test,
-        function_filename,
-        approx_min_cases_to_cover=10,
-        reruns_if_fail=5,
-        print_text=False,
+    # Instance of the UnitTestFlow class
+    test_flow = UnitTestFlow(
+        function_to_test=args.class_or_method,
+        function_filename=args.file_name,
         explain_model=explain_model,
         plan_model=plan_model,
         execute_model=execute_model,
+        approx_min_cases_to_cover=10,
+        reruns_if_fail=5,
     )
 
+    # Generate the tests and potentially run correction loops
+    test_file_path = test_flow.run()
+
     previous_failed_cases = None
-    failed_cases_changed = 0
-    failed_cases_changed_max = 3
+    failed_cases_unchanged = 0
+    max_attempts = 3
 
-    idx = 3
-    ref_idx = idx
-    while idx > 0:
-        # Run the tests
-        test_output = run_pytest(test_file)
-
-        if test_output["returncode"] == 0:
+    while failed_cases_unchanged < max_attempts:
+        pytest_result = test_flow.run_pytest(test_file_path)
+        logging.info("__main__/while/pytest_result:")
+        print(pytest_result)
+        if pytest_result.returncode == 0:
             logging.info("All tests passed successfully!")
             break
 
-        failed_test_cases = extract_failed_test_cases(test_output)
-
-        if previous_failed_cases == failed_test_cases:
-            failed_cases_changed += 1
+        # failed_cases = test_flow.extract_failed_test_cases(pytest_result)
+        failed_cases = pytest_result.stdout
+        if failed_cases == previous_failed_cases:
+            failed_cases_unchanged += 1
             logging.warning(
-                f"Try {failed_cases_changed} - No change in failed test cases after correction. Reviewing test feasibility..."
+                f"Try {failed_cases_unchanged} - No change in failed test cases after correction. Reviewing test feasibility..."
             )
-            # Additional logic to handle unchanged tests or regenerate tests
 
-        if failed_cases_changed == failed_cases_changed_max:
+        if failed_cases_unchanged >= max_attempts:
+            logging.error("Maximum attempts reached with no resolution.")
             logging.info("Regenerating or analyzing tests due to repeated failures.")
-            # Generate the tests again and hope for new better tests
-            test_file = unittest_flow(
-                corrected_function,
-                function_filename,  # Ensure the filename is passed
-                approx_min_cases_to_cover=10,
-                print_text=False,
+            failed_cases_unchanged = 0
+            # Instance of the UnitTestFlow class
+            test_flow = UnitTestFlow(
+                function_to_test=args.class_or_method,
+                function_filename=args.file_name,
                 explain_model=explain_model,
                 plan_model=plan_model,
                 execute_model=execute_model,
-                temperature=0.4 + 0.6 * failed_cases_changed / failed_cases_changed_max,
+                temperature=0.4 + 0.6 * failed_cases_unchanged / max_attempts,
             )
-            idx = ref_idx
-            failed_cases_changed = 0
+            test_file_path = test_flow.run()
             continue
 
-        logging.info("Different failed cases after correction - try to correct again.")
-        # Correct the function based on the test results
-        corrected_function, _ = correct_function(
-            function_to_test,
-            function_filename,
-            test_output,
-            failed_test_cases,
-            explain_model=explain_model,
-            temperature=0.4 + 0.1 * failed_cases_changed,
-        )
-        logging.debug(f"Corrected function:\n{corrected_function}")
+        previous_failed_cases = failed_cases
 
-        function_to_test = corrected_function  # Update the function to test with the corrected function
-        previous_failed_cases = failed_test_cases  # Update the record of failed cases
+        # Assuming we have a method to handle test corrections:
+        # This part should be adjusted according to your real correction mechanism
+        # For now, re-running the test generation as a placeholder for actual correction logic
+        test_file_path = test_flow.run()
 
     logging.info("Test generation and correction loop completed.")
 

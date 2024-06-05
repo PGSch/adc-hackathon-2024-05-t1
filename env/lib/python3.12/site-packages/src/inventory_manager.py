@@ -11,14 +11,13 @@ class InventoryManager:
 
         Args:
         item (str): The name of the item to add.
-        quantity (int or float): The number of items to add.
+        quantity (int): The number of items to add.
 
         Raises:
-        ValueError: If the quantity is negative or not a number.
+        ValueError: If the quantity is negative.
         """
-        if not isinstance(quantity, (int, float)) or quantity < 0:
-            raise ValueError('Quantity must be a non-negative number')
-
+        if quantity < 0:
+            raise ValueError("Quantity must be non-negative")
         if item in self.inventory:
             self.inventory[item] += quantity
         else:
@@ -30,21 +29,18 @@ class InventoryManager:
 
         Args:
         item (str): The name of the item to remove.
-        quantity (int or float): The number of items to remove.
+        quantity (int): The number of items to remove.
 
         Raises:
         ValueError: If the quantity is negative or more than the available quantity.
         """
-        if not isinstance(quantity, (int, float)) or quantity < 0:
-            raise ValueError('Quantity must be a non-negative number')
-
-        if item not in self.inventory:
-            raise ValueError('Item not found in inventory')
-
-        if self.inventory[item] < quantity:
-            raise ValueError('Not enough inventory')
-
+        if quantity < 0:
+            raise ValueError("Quantity must be non-negative")
+        if item not in self.inventory or self.inventory[item] < quantity:
+            raise ValueError("Not enough inventory")
         self.inventory[item] -= quantity
+        if self.inventory[item] == 0:
+            del self.inventory[item]
 
     def check_inventory(self, item):
         """
@@ -57,3 +53,22 @@ class InventoryManager:
         int: The quantity of the item in the inventory.
         """
         return self.inventory.get(item, 0)
+
+
+def pig_latin(text):
+    def translate(word):
+        vowels = "aeiou"
+        if word[0] in vowels:
+            return word + "way"
+        else:
+            consonants = ""
+            for letter in word:
+                if letter not in vowels:
+                    consonants += letter
+                else:
+                    break
+            return word[len(consonants) :] + consonants + "ay"
+
+    words = text.lower().split()
+    translated_words = [translate(word) for word in words]
+    return " ".join(translated_words)
