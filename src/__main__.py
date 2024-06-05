@@ -67,7 +67,7 @@ def main():
     while failed_cases_unchanged < max_attempts:
         pytest_result = test_flow.run_pytest(test_file_path)
         logging.info("__main__/while/pytest_result:")
-        print(pytest_result)
+        # print(pytest_result)
         if pytest_result.returncode == 0:
             logging.info("All tests passed successfully!")
             break

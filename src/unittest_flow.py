@@ -81,7 +81,7 @@ class UnitTestFlow:
                 ["pytest", test_file], capture_output=True, text=True
             )
             logging.info("pytest run successful")
-            print(self.pytest_result.stdout)
+            # print(self.pytest_result.stdout)
             # sys.stdout.write(pytest_result.stdout)
             return self.pytest_result
         except subprocess.CalledProcessError as e:
@@ -119,11 +119,12 @@ class UnitTestFlow:
     def update_function_in_file(self, function_code):
         try:
             # Split by "```python" and take the second part, then split by "```" and take the first part
-            function_code = function_code.split("```python")[1].split("```")[0].strip()
+            # function_code = function_code.split("```python")[1].split("```")[0].strip()
+            function_code = function_code
         except IndexError:
             logging.error("Failed to extract corrected function from response.")
             return  # Add return to prevent attempting to write if the extraction failed
-        file_path = os.path.join(os.getcwd(), self.function_filename)
+        file_path = os.path.join(os.getcwd(), "src/" + self.function_filename)
         with open(file_path, "w") as file:
             file.write(function_code)
         logging.info(f"Updated function written to {file_path}")
